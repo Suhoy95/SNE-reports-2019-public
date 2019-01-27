@@ -15,6 +15,6 @@ export: all $(wildcard *)
 	zip "$(TARGET_FILENAME).zip" $(addprefix ",$(addsuffix ",$(wildcard *)))
 
 clean:
-	git clean -nf
+	git clean -xnf
 	read -p "Are you sure?"
 	git clean -xf
