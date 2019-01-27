@@ -12,7 +12,7 @@ all: $(TARGET)
 
 export: all $(wildcard *)
 	# Welcome to shell-family
-	zip --recurse-paths "$(TARGET_FILENAME).zip" $(addprefix ",$(addsuffix ",$(wildcard *)))
+	zip --recurse-paths "$(TARGET_FILENAME).zip" "$(TARGET)" $(addprefix ",$(addsuffix ",$(wildcard *)))
 
 clean:
 	git clean -xnf
