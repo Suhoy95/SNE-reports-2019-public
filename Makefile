@@ -1,6 +1,6 @@
-TITLE := Containers Orchestration & Load-balancing
+TITLE := Virtual Machine Monitors (Hypervisors)
 SUBJECT := LIA
-NUMBER := 1
+NUMBER := 2
 TARGET_FILENAME := I_Sukhoplyuev-$(SUBJECT)-$(shell sed -e 's/\s/-/g' <<< "${TITLE}")
 TARGET := $(TARGET_FILENAME).pdf
 
