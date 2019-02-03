@@ -119,10 +119,92 @@ packman -S vim bash-completion
 
 ## Installing KVM
 
-### Checking the environment
+```
+pacman -Sy
+pacman -S qemu-headless
+```
+
+## Creating Debian guest
 
 ```
-[root@laputa ~]# lscpu
+mkdir -p distros/debian && cd distros/debian
+wget https://cdimage.debian.org/debian-cd/current/arm64/iso-cd/\
+                                                debian-9.7.0-arm64-netinst.iso \
+     https://cdimage.debian.org/debian-cd/current/arm64/iso-cd/SHA256SUMS
+
+qemu-img create -f qcow debianhdd.qcow 1G
+```
+
+## Getting in troubles
+
+Then, I've tried to run machine and install Debian distro, but I couldn't figure out
+how to run it with `qemu` correctly, so next there will be my tries and results.
+Maybe, someday I'll be enlightened and return to this moment, but to finish the lab
+I will just utilize the Qemu/KVM, which has been installed on the workstation
+since Ubuntu Desktop installation.
+
+- Try to run with CD-first option
+
+```
+[root@laputa debian]# qemu-system-aarch64 -M virt -cpu cortex-a57 \
+            -drive file=./debianhdd.qcow,if=virtio,format=qcow \
+            -drive if=virtio,format=raw,file=debian-9.7.0-arm64-netinst.iso
+            -m 100M \
+            -boot once=d \
+            -monitor telnet::45454,server \
+            -vnc 0.0.0.0:0
+
+suhoy@think-neet:~$ telnet 192.168.16.242 45454
+
+> qemu-system-aarch64: no function defined to set boot device \
+                                                     list for this architecture
+```
+
+- Try to do it with bootmenu:
+
+```
+[root@laputa debian]# qemu-system-aarch64 ... -boot menu=on
+suhoy@think-neet:~$ telnet 192.168.16.242 45454
+```
+
+In the VNC there is no boot menu:
+
+![Run QEMU with boot menu. Nothing =(](images/qemu-arm-vnc_2019-02-03_20:34:28.png)
+
+Another unclear moment is that I could not understand whether `kvm` is working or
+not.
+
+On the one side there is some parameters in kernel and also `/dev/kvm`-file:
+
+```
+[root@laputa ~]# zgrep CONFIG_KVM /proc/config.gz
+CONFIG_KVM_MMIO=y
+CONFIG_KVM_VFIO=y
+CONFIG_KVM_GENERIC_DIRTYLOG_READ_PROTECT=y
+CONFIG_KVM=y
+CONFIG_KVM_ARM_HOST=y
+CONFIG_KVM_ARM_PMU=y
+CONFIG_KVM_INDIRECT_VECTORS=y
+
+[root@laputa debian]# ls -l /dev/kvm
+crw-rw-rw- 1 root kvm 10, 232 Feb  3 13:50 /dev/kvm
+```
+
+On the other side there is nothing about HVM in the CPU-info:
+
+```
+[root@laputa debian]# cat /proc/cpuinfo
+processor	: 0
+BogoMIPS	: 38.40
+Features	: fp asimd evtstrm crc32 cpuid
+CPU implementer	: 0x41
+CPU architecture: 8
+CPU variant	: 0x0
+CPU part	: 0xd03
+CPU revision	: 4
+... 4 times ...
+
+[root@laputa debian]# lscpu
 Architecture:        aarch64
 Byte Order:          Little Endian
 CPU(s):              4
@@ -138,30 +220,32 @@ BogoMIPS:            38.40
 Flags:               fp asimd evtstrm crc32 cpuid
 ```
 
-```
-[root@laputa ~]# zgrep CONFIG_KVM /proc/config.gz
-CONFIG_KVM_MMIO=y
-CONFIG_KVM_VFIO=y
-CONFIG_KVM_GENERIC_DIRTYLOG_READ_PROTECT=y
-CONFIG_KVM=y
-CONFIG_KVM_ARM_HOST=y
-CONFIG_KVM_ARM_PMU=y
-CONFIG_KVM_INDIRECT_VECTORS=y
-```
+Next stage of check is `QEMU`. We can check if kvm is running in the monitor:
 
 ```
-pacman -Sy
-pacman -S qemu-headless
-mkdir -p distros/debian && cd distros/debian
-wget https://cdimage.debian.org/debian-cd/current/arm64/iso-cd/debian-9.7.0-arm64-netinst.iso \
-     https://cdimage.debian.org/debian-cd/current/arm64/iso-cd/SHA256SUMS
+[root@laputa debian]# qemu-system-aarch64 -M virt -cpu cortex-a57 \
+        -drive file=./debianhdd.qcow,if=virtio,format=qcow \
+        -drive if=virtio,format=raw,file=debian-9.7.0-arm64-netinst.iso \
+        -m 100M -boot menu=on \
+        -monitor telnet::45454,server \
+        -vnc 0.0.0.0:0
 
-qemu-img create -f qcow debianhdd.qcow 1G
-
-qemu-system-aarch64 -M virt -cpu cortex-a57 -drive file=./debianhdd.qcow,if=virtio,format=qcow -drive if=virtio,format=raw,file=debian-9.7.0-arm64-netinst.iso -m 100M -boot once=d -monitor telnet::45454,server -vnc 0.0.0.0:0
-
-# fail
+suhoy@think-neet:~$ telnet 192.168.16.242 45454
+...
+(qemu) info kvm
+kvm support: disabled
 ```
+
+Try enable kvm in the `qemu`:
+```
+[root@laputa debian]# qemu-system-aarch64 ... -enable-kvm
+suhoy@think-neet:~$ telnet 192.168.16.242 45454
+
+... [root@laputa debian] ...
+qemu-system-aarch64: kvm_init_vcpu failed: Invalid argument
+```
+
+
 
 
 # Task 2. HyperV & Windows Server 2016
