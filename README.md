@@ -245,6 +245,86 @@ suhoy@think-neet:~$ telnet 192.168.16.242 45454
 qemu-system-aarch64: kvm_init_vcpu failed: Invalid argument
 ```
 
+## Home sweet ~~home~~Ubuntu Desktop
+
+There is no installation, because it has been installed. Thus just check
+the installed packages:
+
+```
+suhoy@quark:~$ dpkg --list | grep -E "kvm|qemu|virt"
+```
+
+| Package | Description |
+|-----------------------------------|--------------------------------------------------------------|
+| gir1.2-libvirt-glib-1.0:amd64     | GObject introspection files for the libvirt-glib library|
+| ipxe-qemu                         | PXE boot firmware - ROM images for qemu|
+| ipxe-qemu-256k-compat-efi-roms    | PXE boot firmware - Compat EFI ROM images for qemu|
+| libvirt-clients                   | Programs for the libvirt library|
+| libvirt-daemon                    | Virtualization daemon|
+| libvirt-daemon-driver-storage-rbd | Virtualization daemon RBD storage driver|
+| libvirt-daemon-system             | Libvirt daemon configuration files|
+| libvirt-glib-1.0-0:amd64          | libvirt GLib and GObject mapping library|
+| libvirt0:amd64                    | library for interfacing with different virtualization systems|
+| ovmf                              | UEFI firmware for 64-bit x86 virtual machines|
+| python-libvirt                    | libvirt Python bindings|
+| qemu                              | fast processor emulator|
+| qemu-block-extra:amd64            | extra block backend modules for qemu-system and qemu-utils|
+| qemu-kvm                          | QEMU Full virtualization on x86 hardware|
+| qemu-slof                         | Slimline Open Firmware -- QEMU PowerPC version|
+| qemu-system                       | QEMU full system emulation binaries|
+| qemu-system-arm                   | QEMU full system emulation binaries (arm)|
+| qemu-system-common                | QEMU full system emulation binaries (common files)|
+| qemu-system-mips                  | QEMU full system emulation binaries (mips)|
+| qemu-system-misc                  | QEMU full system emulation binaries (miscellaneous)|
+| qemu-system-ppc                   | QEMU full system emulation binaries (ppc)|
+| qemu-system-s390x                 | QEMU full system emulation binaries (s390x)|
+| qemu-system-sparc                 | QEMU full system emulation binaries (sparc)|
+| qemu-system-x86                   | QEMU full system emulation binaries (x86)|
+| qemu-user                         | QEMU user mode emulation binaries|
+| qemu-user-binfmt                  | QEMU user mode binfmt registration for qemu-user|
+| qemu-utils                        | QEMU utilities|
+| virt-manager                      | desktop application for managing virtual machines|
+| virt-viewer                       | Displaying the graphical console of a virtual machine|
+| virtinst                          | Programs to create and clone virtual machines|
+
+There is a lot of packages. To not get into the same case as in Arch, let's try understand
+the general relations between them:
+
+ - [KVM (Kernel-based Virtual Machine)](https://www.linux-kvm.org/page/Main_Page) - the
+ [hardware-assisted virtualization](https://en.wikipedia.org/wiki/Hardware-assisted_virtualization),
+ which means that it uses hardware virtualization extension (
+ [Intel VT](https://en.wikipedia.org/wiki/X86_virtualization#Intel_virtualization_(VT-x)) or
+ [AMD-V](https://en.wikipedia.org/wiki/X86_virtualization#AMD_virtualization_(AMD-V)) a.k.a.
+ [x86 virtualization](https://en.wikipedia.org/wiki/X86_virtualization) in general).
+ it is embodied in `kvm.ko` + `kvm-intel.ko` or `kvm-amd.ko` modules.
+ - [QEMU](https://www.qemu.org/) - emulator and virtualizer. In the virtualizer mode
+ it can use either KVM either XEN and reach close-hardware performance. **Ambiguity:**
+ there is `kvm`-command in the bash, but it is just wrapper around QEMU (`qemu-system-x86_64 -enable-kvm`, **man kvm**).
+ - [libvirt](https://libvirt.org/index.html) - the API for virtualization which pass control to one of the
+ [drivers](https://libvirt.org/drivers.html). It might be LXC, QEMU, VirtualBox, Xen, Hyper-V, VMware, ... While we are
+ evaluating KVM and its managers there's no special reason to use it, only eventualy. The `virsh` is like `shell`-embodiment
+ of that API, its [reference](https://libvirt.org/virshcmdref.html) is poor, good point for next Hacktoberfest.
+ - [virt-manager](https://virt-manager.org/) - GUI manager to targets KVM through libvirt.
+ Also can be manage Xen and LXC. It has supporting tools: `virt-install`, `virt-viewer`,
+ `virt-clone`, `virt-xml`, `virt-convert`.
+
+### Check KVM
+
+```
+cat /proc/cpuinfo | grep svm # for AMD-V
+cat /proc/cpuinfo | grep vmx # for Intel VT
+flags           : ... vmx ...
+...
+
+suhoy@quark:~$ lsmod  | grep kvm
+kvm_intel             212992  0
+kvm                   598016  1 kvm_intel
+irqbypass              16384  1 kvm
+
+suhoy@quark:~$ kvm-ok
+INFO: /dev/kvm exists
+KVM acceleration can be used
+```
 
 
 
