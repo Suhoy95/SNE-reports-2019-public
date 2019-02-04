@@ -169,7 +169,7 @@ suhoy@think-neet:~$ telnet 192.168.16.242 45454
 
 In the VNC there is no boot menu:
 
-![Run QEMU with boot menu. Nothing =(](images/qemu-arm-vnc_2019-02-03_20:34:28.png)
+![Run QEMU with boot menu. Nothing =(](images/qemu-arm-vnc_2019-02-03_20-34-28.png)
 
 Another unclear moment is that I could not understand whether `kvm` is working or
 not.
@@ -190,9 +190,10 @@ CONFIG_KVM_INDIRECT_VECTORS=y
 crw-rw-rw- 1 root kvm 10, 232 Feb  3 13:50 /dev/kvm
 ```
 
-On the other side there is nothing about HVM in the CPU-info:
+On the other side there is no kvm-related linux-modules and nothing about HVM in the CPU-info:
 
 ```
+[root@laputa ~]# lsmod | grep kvm
 [root@laputa debian]# cat /proc/cpuinfo
 processor	: 0
 BogoMIPS	: 38.40
@@ -245,7 +246,7 @@ suhoy@think-neet:~$ telnet 192.168.16.242 45454
 qemu-system-aarch64: kvm_init_vcpu failed: Invalid argument
 ```
 
-## Home sweet ~~home~~Ubuntu Desktop
+## Home sweet ~~home~~ Ubuntu Desktop 18.04.1 LTS
 
 There is no installation, because it has been installed. Thus just check
 the installed packages:
@@ -326,6 +327,86 @@ INFO: /dev/kvm exists
 KVM acceleration can be used
 ```
 
+### Checkout the images
+
+Targets: Linux Kali/Ubuntu/Arch, Windows 7, OpenBSD, ReactOS
+
+```
+$ ls ~/VM/iso/
+archlinux-2018.11.01-x86_64.iso
+kali-linux-2018.1-amd64.iso
+ubuntu-18.04.1-desktop-amd64.iso
+ubuntu-18.04.1-live-server-amd64.iso
+windows7.iso
+# TODO downloading in progress
+```
+
+### Understand the VM Networking
+
+As we have found, there is no reason to use `libvirt`, so currently we can
+skip these guides ([1](https://wiki.libvirt.org/page/Networking),
+[2](https://help.ubuntu.com/community/KVM/Networking),
+[3](https://jamielinux.com/docs/libvirt-networking-handbook/index.html))
+about libvirt networking and should concentrate on
+[QEMU-networking](https://wiki.qemu.org/Documentation/Networking).
+
+In the lab description there is such requrement:
+
+>  bridge so your guests can reach the SNE LAN directly
+
+So, we will try to run QEMU machine with KVM, which is able to retrive
+IP from 10.1.1.0/24 via DHCP.
+
+QEMU basic: **network device** and **network backend**.
+
+- to create network backend: `-netdev TYPE,id=NAME,...`, TYPE: `user` (SLIRP), `tap`, `vde`, `socket`
+- to create network device: `-device TYPE,netdev=NAME`, TYPE: `e1000` (default in qemu),
+`rtl8139` (default in qemu-kvm), `virtio-net` (para-virtualised, is the best performance)
+- `-nic` is just the shorthand:
+
+```
+-netdev user,id=n1 -device virtio-net-pci,netdev=n1
+-nic user,model=virtio-net-pci
+```
+
+how to dump network traffic:
+
+```
+-object filter-dump,id=f1,netdev=u1,file=dump.dat
+```
+
+- `-netdev`-options: `hostfwd=tcp::5555-:22` - port forwarding,
+
+
+Finally, I've found the hint how to combine above function to connect VM with SNE-lan
+([gist](https://gist.github.com/extremecoders-re/e8fd8a67a515fee0c873dcafc81d811c)).
+
+### Bridging the networks
+
+```bash
+brctl addbr br0-kvm # ip link add br0 type bridge
+ip addr flush eno1 # ip link set eth0 master br0
+brctl addif br0-kvm eno1
+tunctl -t tap0-kvm -u suhoy
+brctl addif br0-kvm tap0-kvm
+brctl show
+> bridge name   bridge id      STP enabled  interfaces
+> br0-kvm       8000.8613cfea76d1   no      eno1
+>                                           tap0-kvm
+> virbr0        8000.525400baca8f   yes     virbr0-nic
+
+vim /etc/qemu-ifup
+```
+
+```bash
+mkdir -p ~/VM/kvm-hdd/
+qemu-img create -f qcow ~/VM/kvm-hdd/debianhdd.qcow 1G
+
+sudo kvm -cdrom ~/VM/iso/ubuntu-18.04.1-live-server-amd64.iso     -drive file=~/VM/kvm-hdd/debianhdd.qcow,if=virtio,format=qcow     -m 512M -boot once=d      -monitor telnet::45454,server     -netdev tap,id=ubuntu-server,ifname=tap0-kvm     -device virtio-net,id=ubuntu-server
+
+```
+
+https://wiki.qemu.org/Features/HelperNetworking
 
 
 # Task 2. HyperV & Windows Server 2016
@@ -349,5 +430,10 @@ KVM acceleration can be used
 - [https://wiki.archlinux.org/index.php/KVM](https://wiki.archlinux.org/index.php/KVM)
 - [http://www.linux-kvm.org/page/FAQ#General_KVM_information](http://www.linux-kvm.org/page/FAQ#General_KVM_information)
 
+## Emu- & Virt- alization family
+
+- [KVM Howto's](https://www.linux-kvm.org/page/HOWTO)
+- [QEMU Wiki](https://wiki.qemu.org/Main_Page)
+- [QEMU User's Guide](https://qemu.weilnetz.de/doc/qemu-doc.html)
 
 # Appendix
