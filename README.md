@@ -2,7 +2,7 @@
 
 # Preface
 
-# Task 1. KVM & Rassbery PI 3B+
+# Task 1. KVM & Raspberry PI 3B+
 
 ## Install ArchLinux
 
@@ -327,20 +327,6 @@ INFO: /dev/kvm exists
 KVM acceleration can be used
 ```
 
-### Checkout the images
-
-Targets: Linux Kali/Ubuntu/Arch, Windows 7, OpenBSD, ReactOS
-
-```
-$ ls ~/VM/iso/
-archlinux-2018.11.01-x86_64.iso
-kali-linux-2018.1-amd64.iso
-ubuntu-18.04.1-desktop-amd64.iso
-ubuntu-18.04.1-live-server-amd64.iso
-windows7.iso
-# TODO downloading in progress
-```
-
 ### Understand the VM Networking
 
 As we have found, there is no reason to use `libvirt`, so currently we can
@@ -394,19 +380,73 @@ brctl show
 > br0-kvm       8000.8613cfea76d1   no      eno1
 >                                           tap0-kvm
 > virbr0        8000.525400baca8f   yes     virbr0-nic
-
-vim /etc/qemu-ifup
 ```
+
+### Run with bridget network
+
+- generate MAC address and use the created tap-interface as backend:
 
 ```bash
-mkdir -p ~/VM/kvm-hdd/
-qemu-img create -f qcow ~/VM/kvm-hdd/debianhdd.qcow 1G
+./scripts/gen-mac-addr.sh
+> 02:c2:03:bc:48:6f
 
-sudo kvm -cdrom ~/VM/iso/ubuntu-18.04.1-live-server-amd64.iso     -drive file=~/VM/kvm-hdd/debianhdd.qcow,if=virtio,format=qcow     -m 512M -boot once=d      -monitor telnet::45454,server     -netdev tap,id=ubuntu-server,ifname=tap0-kvm     -device virtio-net,id=ubuntu-server
-
+sudo kvm ... \
+    -netdev tap,id=ubuntu-server,ifname=tap0-kvm,script=no \
+    -device virtio-net,netdev=ubuntu-server,mac=02:c2:03:bc:48:6f
 ```
 
-https://wiki.qemu.org/Features/HelperNetworking
+## Checkout the images
+
+Targets: Linux [Kali|Ubuntu|Arch], Windows 7, OpenBSD, ReactOS
+
+```
+$ ls ~/VM/iso/
+archlinux-2018.11.01-x86_64.iso
+ubuntu-18.04.1-desktop-amd64.iso
+ubuntu-18.04.1-live-server-amd64.iso
+kali-linux-2018.1-amd64.iso
+windows7.iso
+ReactOS-0.4.10.iso
+
+$ file install64.iso
+install64.iso: ISO 9660 CD-ROM filesystem data 'OpenBSD/amd64   6.4 Install CD' (bootable)
+```
+
+## Installing the OS-es
+
+The all installations is similar and the commands will repeat each launch, so
+there is reason to script starting command. Here is only reference to these
+scripts and little comment for main points. Details can be found in source.
+
+- `./scripts/ubuntu-server.sh` - the first script, used for debugging.
+- `./scripts/windows7.sh` - system not recognize hard drive and network card with `virtio`-type. So I put default hard-drive, and `e1000`-network device.
+- `./scripts/openbsd.sh` - unsucessfuly tried install over serial console without graphic.
+- `./scripts/reactos.sh` - the same problem as in win7. But even `e1000` was not recognized. The random suggestion to use `ne2k_pci` from the Internet has helped.
+
+![Ensuring that QEMU run with KVM support](images/ubuntu-qemu-kvm-ok.png)
+![](images/ubuntu-server.png)
+![](images/windows7.png)
+![](images/openbsd.png)
+![](images/reactos.png)
+
+
+## Reaching the Quest over SSH
+
+Tries to set ip on the `eno1` (hardware part of the bridge) was unsucessfull.
+Set IP to the bridge works:
+
+![](images/reach-via-ssh.png)
+
+## Paravirtualization
+
+[KVM paravirtualization](https://www.linux-kvm.org/page/Virtio) is reached by using
+special devices. There are `virtio` in `-drive`, and `virtio-net` in `-device`. As
+soon as distribution has the drivers it will work from the box. In my cases `ubuntu-server`
+and `openbsd` has the `virtio` devices.
+
+We can check that support in example of Ubuntu server if find the kernel config-file:
+
+![The some VIRTIO options are enabled, and some are available as module](images/ubuntu-virtio-config.png)
 
 
 # Task 2. HyperV & Windows Server 2016
@@ -429,11 +469,14 @@ https://wiki.qemu.org/Features/HelperNetworking
 - [https://wiki.archlinux.org/index.php/Bash#Tab_completion](https://wiki.archlinux.org/index.php/Bash#Tab_completion)
 - [https://wiki.archlinux.org/index.php/KVM](https://wiki.archlinux.org/index.php/KVM)
 - [http://www.linux-kvm.org/page/FAQ#General_KVM_information](http://www.linux-kvm.org/page/FAQ#General_KVM_information)
+- [https://wiki.archlinux.org/index.php/Network_bridge](https://wiki.archlinux.org/index.php/Network_bridge)
 
 ## Emu- & Virt- alization family
 
 - [KVM Howto's](https://www.linux-kvm.org/page/HOWTO)
 - [QEMU Wiki](https://wiki.qemu.org/Main_Page)
 - [QEMU User's Guide](https://qemu.weilnetz.de/doc/qemu-doc.html)
+- [QEMU-networking](https://wiki.qemu.org/Documentation/Networking)
+- [QEMU bridge helpers](https://wiki.qemu.org/Features/HelperNetworking)
 
 # Appendix
