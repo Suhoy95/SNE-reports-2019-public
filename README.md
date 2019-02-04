@@ -448,6 +448,23 @@ We can check that support in example of Ubuntu server if find the kernel config-
 
 ![The some VIRTIO options are enabled, and some are available as module](images/ubuntu-virtio-config.png)
 
+## Disabling the console
+
+I tried to run installation over serial port, but could not perform installation.
+But there is still chance: during installation OpsenBSD suggest create default
+console to `com0`. So we can install OpenBSD with VNC-default way, and then disable
+graphic and enable the serial port:
+
+```bash
+# ./scripts/openbsd-nographic.sh
+# ...
+    -nographic \
+    -serial telnet::5555,server \
+```
+
+In that command serial port was redirected to `:5555`-telnet port.
+
+![Controlling OpenBSD over serial port via telnet](images/openbsd-nographic.png)
 
 # Task 2. HyperV & Windows Server 2016
 
