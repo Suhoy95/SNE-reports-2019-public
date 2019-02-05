@@ -1,5 +1,3 @@
-
-
 # Preface
 
 # Task 1. KVM & Raspberry PI 3B+
@@ -111,13 +109,13 @@ cat /etc/ssh/sshd_config
 > PasswordAuthentication no
 ```
 
-- Install convinient packages
+- Install convenient packages
 
 ```
 packman -S vim bash-completion
 ```
 
-## Installing KVM
+## Installing QEMU/KVM
 
 ```
 pacman -Sy
@@ -137,7 +135,7 @@ qemu-img create -f qcow debianhdd.qcow 1G
 
 ## Getting in troubles
 
-Then, I've tried to run machine and install Debian distro, but I couldn't figure out
+Then, I've tried to run a machine and install Debian distro, but I couldn't figure out
 how to run it with `qemu` correctly, so next there will be my tries and results.
 Maybe, someday I'll be enlightened and return to this moment, but to finish the lab
 I will just utilize the Qemu/KVM, which has been installed on the workstation
@@ -152,15 +150,15 @@ since Ubuntu Desktop installation.
             -m 100M \
             -boot once=d \
             -monitor telnet::45454,server \
-            -vnc 0.0.0.0:0
+            -vnc 0.0.0.0:5555
 
 suhoy@think-neet:~$ telnet 192.168.16.242 45454
 
-> qemu-system-aarch64: no function defined to set boot device \
-                                                     list for this architecture
+> qemu-system-aarch64: \
+  no function defined to set boot device list for this architecture
 ```
 
-- Try to do it with bootmenu:
+- Try to do it with a boot menu:
 
 ```
 [root@laputa debian]# qemu-system-aarch64 ... -boot menu=on
@@ -169,7 +167,7 @@ suhoy@think-neet:~$ telnet 192.168.16.242 45454
 
 In the VNC there is no boot menu:
 
-![Run QEMU with boot menu. Nothing =(](images/qemu-arm-vnc_2019-02-03_20-34-28.png)
+![Run QEMU with the boot menu. Nothing =(](images/qemu-arm-vnc_2019-02-03_20-34-28.png)
 
 Another unclear moment is that I could not understand whether `kvm` is working or
 not.
@@ -195,14 +193,14 @@ On the other side there is no kvm-related linux-modules and nothing about HVM in
 ```
 [root@laputa ~]# lsmod | grep kvm
 [root@laputa debian]# cat /proc/cpuinfo
-processor	: 0
-BogoMIPS	: 38.40
-Features	: fp asimd evtstrm crc32 cpuid
-CPU implementer	: 0x41
+processor    : 0
+BogoMIPS    : 38.40
+Features    : fp asimd evtstrm crc32 cpuid
+CPU implementer    : 0x41
 CPU architecture: 8
-CPU variant	: 0x0
-CPU part	: 0xd03
-CPU revision	: 4
+CPU variant    : 0x0
+CPU part    : 0xd03
+CPU revision    : 4
 ... 4 times ...
 
 [root@laputa debian]# lscpu
@@ -221,7 +219,7 @@ BogoMIPS:            38.40
 Flags:               fp asimd evtstrm crc32 cpuid
 ```
 
-Next stage of check is `QEMU`. We can check if kvm is running in the monitor:
+Next check stage is `QEMU`. We can check if kvm is running in the monitor:
 
 ```
 [root@laputa debian]# qemu-system-aarch64 -M virt -cpu cortex-a57 \
@@ -248,7 +246,7 @@ qemu-system-aarch64: kvm_init_vcpu failed: Invalid argument
 
 ## Home sweet ~~home~~ Ubuntu Desktop 18.04.1 LTS
 
-There is no installation, because it has been installed. Thus just check
+There is no installation because it has been installed. Thus just check
 the installed packages:
 
 ```
@@ -306,8 +304,8 @@ the general relations between them:
  evaluating KVM and its managers there's no special reason to use it, only eventualy. The `virsh` is like `shell`-embodiment
  of that API, its [reference](https://libvirt.org/virshcmdref.html) is poor, good point for next Hacktoberfest.
  - [virt-manager](https://virt-manager.org/) - GUI manager to targets KVM through libvirt.
- Also can be manage Xen and LXC. It has supporting tools: `virt-install`, `virt-viewer`,
- `virt-clone`, `virt-xml`, `virt-convert`.
+ Also, it can manage Xen and LXC. It has supporting tools: `virt-install`, `virt-viewer`,
+ `virt-clone`, `virt-ml`, `virt-convert`.
 
 ### Check KVM
 
@@ -327,21 +325,22 @@ INFO: /dev/kvm exists
 KVM acceleration can be used
 ```
 
-### Understand the VM Networking
+### Understand the QEMU Networking
 
-As we have found, there is no reason to use `libvirt`, so currently we can
+As we have found, there is no reason to use `libvirt`, so currently, we can
 skip these guides ([1](https://wiki.libvirt.org/page/Networking),
 [2](https://help.ubuntu.com/community/KVM/Networking),
 [3](https://jamielinux.com/docs/libvirt-networking-handbook/index.html))
 about libvirt networking and should concentrate on
 [QEMU-networking](https://wiki.qemu.org/Documentation/Networking).
 
-In the lab description there is such requrement:
+In the lab description there is such requirement:
 
 >  bridge so your guests can reach the SNE LAN directly
 
-So, we will try to run QEMU machine with KVM, which is able to retrive
-IP from 10.1.1.0/24 via DHCP.
+So, we will try to run QEMU machine with KVM, which is able to retrieve
+IP from 10.1.1.0/24 via DHCP. Or at least set static address `10.1.1.42`
+and reach the Internet over `10.1.1.254`-gateway.
 
 QEMU basic: **network device** and **network backend**.
 
@@ -382,7 +381,7 @@ brctl show
 > virbr0        8000.525400baca8f   yes     virbr0-nic
 ```
 
-### Run with bridget network
+### Run with bridged network
 
 - generate MAC address and use the created tap-interface as backend:
 
@@ -414,14 +413,15 @@ install64.iso: ISO 9660 CD-ROM filesystem data 'OpenBSD/amd64   6.4 Install CD' 
 
 ## Installing the OS-es
 
-The all installations is similar and the commands will repeat each launch, so
-there is reason to script starting command. Here is only reference to these
-scripts and little comment for main points. Details can be found in source.
+All installations are similar and the commands will repeat each launch, so
+there is the reason to script starting command. Here is the only reference to these
+scripts and little comment for main points. Details can be found in the source.
 
 - `./scripts/ubuntu-server.sh` - the first script, used for debugging.
 - `./scripts/windows7.sh` - system not recognize hard drive and network card with `virtio`-type. So I put default hard-drive, and `e1000`-network device.
 - `./scripts/openbsd.sh` - unsucessfuly tried install over serial console without graphic.
-- `./scripts/reactos.sh` - the same problem as in win7. But even `e1000` was not recognized. The random suggestion to use `ne2k_pci` from the Internet has helped.
+- `./scripts/reactos.sh` - the same problem as in win7. But even `e1000` was not recognized.
+The random suggestion from the Internet to use `ne2k_pci` has helped.
 
 ![Ensuring that QEMU run with KVM support](images/ubuntu-qemu-kvm-ok.png)
 ![](images/ubuntu-server.png)
@@ -432,7 +432,7 @@ scripts and little comment for main points. Details can be found in source.
 
 ## Reaching the Quest over SSH
 
-Tries to set ip on the `eno1` (hardware part of the bridge) was unsucessfull.
+Tries to set IP on the `eno1` (hardware part of the bridge) was unsuccessful.
 Set IP to the bridge works:
 
 ![](images/reach-via-ssh.png)
@@ -444,14 +444,14 @@ special devices. There are `virtio` in `-drive`, and `virtio-net` in `-device`. 
 soon as distribution has the drivers it will work from the box. In my cases `ubuntu-server`
 and `openbsd` has the `virtio` devices.
 
-We can check that support in example of Ubuntu server if find the kernel config-file:
+We can check that support in the Ubuntu server if find the kernel config file:
 
 ![The some VIRTIO options are enabled, and some are available as module](images/ubuntu-virtio-config.png)
 
 ## Disabling the console
 
-I tried to run installation over serial port, but could not perform installation.
-But there is still chance: during installation OpsenBSD suggest create default
+I tried to run installation over the serial port, but could not perform the installation.
+But there is still a chance: during installation, OpenBSD suggest create the default
 console to `com0`. So we can install OpenBSD with VNC-default way, and then disable
 graphic and enable the serial port:
 
@@ -466,9 +466,187 @@ In that command serial port was redirected to `:5555`-telnet port.
 
 ![Controlling OpenBSD over serial port via telnet](images/openbsd-nographic.png)
 
-# Task 2. HyperV & Windows Server 2016
+# Task 2. KVM nested Bhyve
+
+## Adventure time
+
+In the old-lab description, there is an option to try `bhyve`. I had already been
+ready to install FreeBSD to the host, but I found the intriguing question
+on the bhyve [wiki](https://wiki.freebsd.org/bhyve):
+
+> Q: Can I run multiple bhyve hosts under Linux KVM with nested VT-x EPT?
+>
+> A: Maybe. You must enable it and note the known limitations. Please let us know if you are successful.
+
+With references about KVM-nested virtualization ([1](http://www.rdoxenham.com/?p=275),
+ [2](https://www.kernel.org/doc/Documentation/virtual/kvm/nested-vmx.txt)).
+
+So, check the nested KVM option:
+
+![In the Ubuntu Desktop nested KVM is enabled by default](images/check-nested-kvm.png)
+
+```
+qemu-system-x86_64 -cpu help | grep vmx
+> pni pclmulqdq dtes64 monitor ds-cpl vmx smx est tm2 ssse3 cid fma cx16 xtpr \
+ pdcm pcid dca sse4.1 sse4.2 x2apic movbe popcnt tsc-deadline aes xsave osxsave \
+ avx f16c rdrand hypervisor
+```
+
+## Install Frebsd into kvm with nested
+
+- QEMU script: `scripts/freebsd.sh`
+
+![My first FreeBSD installing (in QEMU/KVM)](./images/installing-freebsd.png)
+
+### Preparing the FreeBSD host
+
+I'm following the chapter [21.7. FreeBSD as a Host with bhyve](https://www.freebsd.org/doc/handbook/virtualization-host-bhyve.html) in the FreeBSD handbook.
+
+Load the virtualization:
+```
+kldload vmm
+```
+There was some message about a bug, but I forgot to catch it. On the next loading
+the system says that this module is loaded, so we are continuing:
+
+```
+kldload vmm
+kldload: can't load vmm: module already loaded or in kernel
+```
+
+- configuring bridge:
+
+```
+# ifconfig tap0 create
+# sysctl net.link.tap.up_on_open=1
+net.link.tap.up_on_open: 0 -> 1
+# ifconfig bridge0 create
+# ifconfig bridge0 addm igb0 addm tap0
+# ifconfig bridge0 up
+```
+
+### Creating a FreeBSD Guest
+
+```
+truncate -s 10G guest.img
+
+fetch ftp://ftp.freebsd.org/pub/FreeBSD/releases/ISO-IMAGES/10.3/\
+    FreeBSD-10.3-RELEASE-amd64-bootonly.iso
+sh /usr/share/examples/bhyve/vmrun.sh -c 1 -m 1024M -t tap0 -d guest.img \
+    -i -I FreeBSD-10.3-RELEASE-amd64-bootonly.iso freebsd
+
+sh /usr/share/examples/bhyve/vmrun.sh -c 4 -m 1024M -t tap0 -d guest.img freebsd
+```
+![Trace route from nested FreeBSD/Bhyve](images/installed-nested-freebsd.png)
+
+### Creating a Linux Guest
+
+#### Ubuntu Server
+
+We will override installed nested FreeBSD image, beacause there is only `15G` in the
+FreeBSD system.
+
+```
+scp ubuntu-18.04.1-live-server-amd64.iso root@10.1.1.42:/root/
+
+pkg install sysutils/grub2-bhyve vim-console
+
+root@fuva-fuva:~ # cat device.map
+(hd0) ./guest.img
+(cd0) ./ubuntu-18.04.1-live-server-amd64.iso
+
+grub-bhyve -m device.map -r cd0 -M 1024M ubuntuserver
+```
+
+![The first stage of running Linux system, specifing to GRUB the kernel and initrd with `grub-bhyve`](images/bhyve-grub-ubuntu-server.png)
+
+```
+bhyve -A -H -P '
+    -s 0:0,hostbridge \
+    -s 1:0,lpc \
+    -s 2:0,virtio-net,tap0 \
+    -s 3:0,virtio-blk,./guest.img \
+    -s 4:0,ahci-cd,./ubuntu-18.04.1-live-server-amd64.iso \
+    -l com1,stdio -c 4 -m 1024M ubuntuserver
+```
+
+So slow, that I can read the bootload logs... So slow, that I had dinner, and formed the report.
+This is time to investigate bhyve monitoring capabilities.
+
+```
+ ls -al /dev/vmm
+total 1
+dr-xr-xr-x   2 root  wheel   512 Feb  5 16:04 .
+dr-xr-xr-x  17 root  wheel   512 Feb  5 14:48 ..
+crw-------   1 root  wheel  0x73 Feb  5 16:04 ubuntuserver
+
+```
+According to the `top` the `bhyve process` is in idle state, maybe installation couldn't go through com port.
+So I send `kill [bhave ubuntu server pid]` and ubuntu machine starts to shut down.
+
+#### Debian
+
+Now, let's try to install Debian.
+
+```
+fetch http://cdimage.debian.org/debian-cd/current/amd64/iso-cd/\
+    debian-9.7.0-amd64-netinst.iso
+bhyvectl --destroy --vm=ubuntuserver
+
+cat device.map
+(hd0) ./guest.img
+(cd0) ./debian-9.7.0-amd64-netinst.iso
+
+grub-bhyve -m device.map -r cd0 -M 1024M debian
+
+bhyve -A -H -P \
+    -s 0:0,hostbridge \
+    -s 1:0,lpc \
+    -s 2:0,virtio-net,tap0 \
+    -s 3:0,virtio-blk,./guest.img \
+    -s 4:0,ahci-cd,./debian-9.7.0-amd64-netinst.iso \
+    -l com1,stdio -c 4 -m 1024M debian
+```
+
+Well, the Debian installer looks working. It's also slow even I see how the
+console cursor jumps and rerender the menus, but it's controllable.
+*It could be even a debugging the startup system with nested-virtualization approach (joke)*.
+
+*Note: I wanted to capture video with `kazam`, but Canonical broke the Gnome, and I couldn't save the video and I had to kill kazam.*
+
+![The Debian nested installation](images/debian-installation.png)
+
+```
+bhyvectl --destroy --vm=debian
+grub-bhyve -m device.map -r hd0,msdos1 -M 1024M debian
+bhyve -A -H -P -s 0:0,hostbridge -s 1:0,lpc -s 2:0,virtio-net,tap0 \
+    -s 3:0,virtio-blk,./guest.img -l com1,stdio -c 4 -m 1024M debian
+bhyvectl --destroy --vm=debian
+```
+![Debian in the bhyve](images/nested-debian-2.png)
+
+## Afterword
+
+In the FreeBSD handbook there are sections about UEFI and graphical UEFI in bhyve.
+I think to try it and then send email to FreeBSD virtualization group. But now I have
+to submit the lab. So ask me later if you are instresting in the rest.
 
 # Conclusion
+
+- Run Arch Linux on RPi3
+- Failed to run QEMU/KVM on Arch/RPi3
+- Understand and use QEMU/KVM on the Ubuntu Desktop
+- Run nested Virtualization:
+
+```
+-----------------------------
+|   FreeBSD   |   Debian    |
+|---------------------------|
+|    FreeBSD (bhyve)        |
+|---------------------------|
+| Ubuntu Desktop (QEMU/KVM) |
+----------------------------|
+```
 
 # References
 
@@ -496,4 +674,77 @@ In that command serial port was redirected to `:5555`-telnet port.
 - [QEMU-networking](https://wiki.qemu.org/Documentation/Networking)
 - [QEMU bridge helpers](https://wiki.qemu.org/Features/HelperNetworking)
 
+## Nested KVM virtualization
+
+- [http://www.rdoxenham.com/?p=275](http://www.rdoxenham.com/?p=275)
+- [https://www.kernel.org/doc/Documentation/virtual/kvm/nested-vmx.txt](https://www.kernel.org/doc/Documentation/virtual/kvm/nested-vmx.txt)
+
+## Bhyve
+
+- [FreeBSD Wiki: bhyve, the BSD Hypervisor](https://wiki.freebsd.org/bhyve)
+- [github:grub2-bhyve](https://github.com/grehan-freebsd/grub2-bhyve)
+- [FreeBSD man bhyve](https://www.freebsd.org/cgi/man.cgi?query=bhyve)
+
 # Appendix
+
+## System fingerprints
+
+### Ubuntu Desktop 18.04 QEMU/KVM bare-metal host
+
+```
+uname -a
+Linux quark 4.15.0-45-generic #48-Ubuntu SMP Tue Jan 29 16:28:13 UTC 2019 x86_64 \
+    x86_64 x86_64 GNU/Linux
+
+qemu-system-x86_64 --version
+QEMU emulator version 2.11.1(Debian 1:2.11+dfsg-1ubuntu7.9)
+Copyright (c) 2003-2017 Fabrice Bellard and the QEMU Project developers
+
+cat /proc/cpuinfo
+processor    : 0
+vendor_id    : GenuineIntel
+cpu family    : 6
+model        : 60
+model name    : Intel(R) Core(TM) i5-4590 CPU @ 3.30GHz
+stepping    : 3
+microcode    : 0x25
+cpu MHz        : 3556.842
+cache size    : 6144 KB
+physical id    : 0
+siblings    : 4
+core id        : 0
+cpu cores    : 4
+apicid        : 0
+initial apicid    : 0
+fpu        : yes
+fpu_exception    : yes
+cpuid level    : 13
+wp        : yes
+flags        : fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat
+            pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx
+            pdpe1gb rdtscp lm constant_tsc arch_perfmon pebs bts rep_good nopl
+            xtopology nonstop_tsc cpuid aperfmperf pni pclmulqdq dtes64 monitor
+            ds_cpl vmx smx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid sse4_1
+            sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c
+            rdrand lahf_lm abm cpuid_fault epb invpcid_single pti ssbd ibrs
+            ibpb stibp tpr_shadow vnmi flexpriority ept vpid fsgsbase tsc_adjust
+            bmi1 avx2 smep bmi2 erms invpcid xsaveopt dtherm ida arat pln pts
+            flush_l1d
+bugs        : cpu_meltdown spectre_v1 spectre_v2 spec_store_bypass l1tf
+bogomips    : 6585.41
+clflush size    : 64
+cache_alignment    : 64
+address sizes    : 39 bits physical, 48 bits virtual
+power management:
+
+...
+```
+
+### FreeBSD 12.0
+
+- QEMU parameters: `scripts/freebsd.sh`
+
+```
+uname -a
+FreeBSD fuva-fuva 12.0-RELEASE FreeBSD 12.0-RELEASE r341666 GENERIC  amd64
+```
