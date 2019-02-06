@@ -631,6 +631,9 @@ In the FreeBSD handbook there are sections about UEFI and graphical UEFI in bhyv
 I think to try it and then send email to FreeBSD virtualization group. But now I have
 to submit the lab. So ask me later if you are instresting in the rest.
 
+https://wiki.freebsd.org/bhyve#Participation
+https://www.freebsd.org/doc/handbook/virtualization-host-bhyve.html
+
 # Conclusion
 
 - Run Arch Linux on RPi3
