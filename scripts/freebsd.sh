@@ -15,11 +15,12 @@ if [ ! -f "$HDD" ]; then
     qemu-img create -f raw "$HDD" 15G
 fi
 
-sudo kvm -cpu host,vmx \
+kvm -cpu host,vmx \
     -usb -usbdevice "disk:$USBISO" \
     -drive file="$HDD",if=virtio,format=raw \
     -m 2048M \
     $BOOT \
+    -monitor stdio \
     -netdev tap,id=freebsd,ifname=tap0-kvm,script=no \
     -device virtio-net,netdev=freebsd,mac=02:4f:88:2e:9b:e7
 

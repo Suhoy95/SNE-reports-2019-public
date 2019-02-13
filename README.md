@@ -521,7 +521,7 @@ kldload: can't load vmm: module already loaded or in kernel
 # sysctl net.link.tap.up_on_open=1
 net.link.tap.up_on_open: 0 -> 1
 # ifconfig bridge0 create
-# ifconfig bridge0 addm igb0 addm tap0
+# ifconfig bridge0 addm vtnet0 addm tap0
 # ifconfig bridge0 up
 ```
 
@@ -625,14 +625,6 @@ bhyvectl --destroy --vm=debian
 ```
 ![Debian in the bhyve](images/nested-debian-2.png)
 
-## Afterword
-
-In the FreeBSD handbook there are sections about UEFI and graphical UEFI in bhyve.
-I think to try it and then send email to FreeBSD virtualization group. But now I have
-to submit the lab. So ask me later if you are instresting in the rest.
-
-https://wiki.freebsd.org/bhyve#Participation
-https://www.freebsd.org/doc/handbook/virtualization-host-bhyve.html
 
 # Conclusion
 
