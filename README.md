@@ -625,6 +625,12 @@ bhyvectl --destroy --vm=debian
 ```
 ![Debian in the bhyve](images/nested-debian-2.png)
 
+## Test multiple Bhyve hosts
+
+We has tested nested virtualization. But the question was also about running multiple bhyve-s under Linux/KVM. 
+I repeted the actions from **"Preparing the FreeBSD host"**, **"Creating a FreeBSD Guest"** to check it.
+The results can be viewed in the [youtube-video](https://youtu.be/yMj4m0gc1_k).
+
 
 # Conclusion
 
